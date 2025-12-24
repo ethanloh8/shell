@@ -5,8 +5,8 @@ import qs.services
 import qs.utils
 import qs.config
 import Quickshell
-import Quickshell.Bluetooth
 import Quickshell.Services.UPower
+import Quickshell.Services.SystemTray
 import QtQuick
 import QtQuick.Layouts
 
@@ -140,81 +140,14 @@ StyledRect {
             }
         }
 
-        // Network icon
-        WrappedLoader {
-            name: "network"
-            active: Config.bar.status.showNetwork
-
-            sourceComponent: MaterialIcon {
-                animate: true
-                text: Network.active ? Icons.getNetworkIcon(Network.active.strength ?? 0) : "wifi_off"
-                color: root.colour
-            }
-        }
-
-        // Bluetooth section
-        WrappedLoader {
-            Layout.preferredHeight: implicitHeight
-
-            name: "bluetooth"
-            active: Config.bar.status.showBluetooth
-
-            sourceComponent: ColumnLayout {
-                spacing: Appearance.spacing.smaller / 2
-
-                // Bluetooth icon
-                MaterialIcon {
-                    animate: true
-                    text: {
-                        if (!Bluetooth.defaultAdapter?.enabled)
-                            return "bluetooth_disabled";
-                        if (Bluetooth.devices.values.some(d => d.connected))
-                            return "bluetooth_connected";
-                        return "bluetooth";
-                    }
-                    color: root.colour
-                }
-
-                // Connected bluetooth devices
-                Repeater {
-                    model: ScriptModel {
-                        values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected)
-                    }
-
-                    MaterialIcon {
-                        id: device
-
-                        required property BluetoothDevice modelData
-
-                        animate: true
-                        text: Icons.getBluetoothIcon(modelData?.icon)
-                        color: root.colour
-                        fill: 1
-
-                        SequentialAnimation on opacity {
-                            running: device.modelData?.state !== BluetoothDeviceState.Connected
-                            alwaysRunToEnd: true
-                            loops: Animation.Infinite
-
-                            Anim {
-                                from: 1
-                                to: 0
-                                duration: Appearance.anim.durations.large
-                                easing.bezierCurve: Appearance.anim.curves.standardAccel
-                            }
-                            Anim {
-                                from: 0
-                                to: 1
-                                duration: Appearance.anim.durations.large
-                                easing.bezierCurve: Appearance.anim.curves.standardDecel
-                            }
-                        }
-                    }
-                }
+        // Network and Bluetooth tray icons (nm-applet and blueman-applet)
+        Repeater {
+            model: ScriptModel {
+                values: [...SystemTray.items.values].filter(item => item.id === "nm-applet" || item.id === "blueman")
             }
 
-            Behavior on Layout.preferredHeight {
-                Anim {}
+            StatusTrayItem {
+                Layout.alignment: Qt.AlignHCenter
             }
         }
 
@@ -255,5 +188,23 @@ StyledRect {
         Layout.alignment: Qt.AlignHCenter
         asynchronous: true
         visible: active
+    }
+
+    component StatusTrayItem: Item {
+        required property SystemTrayItem modelData
+
+        readonly property string name: {
+            const allItems = [...SystemTray.items.values];
+            const index = allItems.findIndex(item => item.id === modelData.id);
+            return `traymenu${index}`;
+        }
+
+        implicitWidth: trayItemInner.implicitWidth
+        implicitHeight: trayItemInner.implicitHeight
+
+        TrayItem {
+            id: trayItemInner
+            modelData: parent.modelData
+        }
     }
 }

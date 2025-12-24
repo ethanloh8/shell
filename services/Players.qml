@@ -12,7 +12,7 @@ Singleton {
     id: root
 
     readonly property list<MprisPlayer> list: Mpris.players.values
-    readonly property MprisPlayer active: props.manualActive ?? list.find(p => getIdentity(p) === Config.services.defaultPlayer) ?? list[0] ?? null
+    readonly property MprisPlayer active: props.manualActive ?? list.find(p => p.isPlaying) ?? list.find(p => getIdentity(p) === Config.services.defaultPlayer) ?? list[0] ?? null
     property alias manualActive: props.manualActive
 
     function getIdentity(player: MprisPlayer): string {

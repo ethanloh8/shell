@@ -18,10 +18,44 @@ Searcher {
     property string previewPath
     property string actualCurrent
     property bool previewColourLock
+    property bool initialLoad: true
+    property bool swwwReady: false
+
+    Component.onCompleted: {
+        if (Config.background.swww.enabled)
+            swwwDaemon.running = true;
+    }
 
     function setWallpaper(path: string): void {
         actualCurrent = path;
-        Quickshell.execDetached(["caelestia", "wallpaper", "-f", path, ...smartArg]);
+
+        if (Config.background.swww.enabled) {
+            // Build swww command with transition options
+            const swwwArgs = ["swww", "img", path];
+            const swwwConfig = Config.background.swww;
+
+            if (swwwConfig.transitionType)
+                swwwArgs.push("--transition-type", swwwConfig.transitionType);
+            if (swwwConfig.transitionDuration > 0)
+                swwwArgs.push("--transition-duration", swwwConfig.transitionDuration.toString());
+            if (swwwConfig.transitionStep > 0)
+                swwwArgs.push("--transition-step", swwwConfig.transitionStep.toString());
+            if (swwwConfig.transitionFps > 0)
+                swwwArgs.push("--transition-fps", swwwConfig.transitionFps.toString());
+
+            Quickshell.execDetached(swwwArgs);
+
+            // Write path to state file
+            Quickshell.execDetached(["sh", "-c", `mkdir -p "$(dirname '${currentNamePath}')" && printf '%s' '${path}' > '${currentNamePath}'`]);
+
+            // Run color extraction if smart scheme is enabled and scheme is dynamic
+            if (Config.services.smartScheme && Colours.scheme === "dynamic")
+                colourExtractionProc.running = true;
+        } else {
+            // Use legacy caelestia CLI backend, only apply colors if scheme is dynamic
+            const args = Config.services.smartScheme && Colours.scheme === "dynamic" ? [] : ["--no-smart"];
+            Quickshell.execDetached(["caelestia", "wallpaper", "-f", path, ...args]);
+        }
     }
 
     function preview(path: string): void {
@@ -68,6 +102,22 @@ Searcher {
         onLoaded: {
             root.actualCurrent = text().trim();
             root.previewColourLock = false;
+            if (root.initialLoad && root.actualCurrent && root.swwwReady) {
+                root.initialLoad = false;
+                root.setWallpaper(root.actualCurrent);
+            }
+        }
+    }
+
+    Process {
+        id: swwwDaemon
+        command: ["swww-daemon", "--no-cache"]
+        onStarted: {
+            root.swwwReady = true;
+            if (root.initialLoad && root.actualCurrent) {
+                root.initialLoad = false;
+                root.setWallpaper(root.actualCurrent);
+            }
         }
     }
 
@@ -87,6 +137,17 @@ Searcher {
             onStreamFinished: {
                 Colours.load(text, true);
                 Colours.showPreview = true;
+            }
+        }
+    }
+
+    Process {
+        id: colourExtractionProc
+
+        command: ["caelestia", "wallpaper", "-p", root.actualCurrent, ...root.smartArg]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                Colours.load(text, false);
             }
         }
     }

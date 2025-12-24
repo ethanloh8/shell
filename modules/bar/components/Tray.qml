@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import qs.components
 import qs.services
 import qs.config
+import qs.utils
+import Quickshell
 import Quickshell.Services.SystemTray
 import QtQuick
 
@@ -66,7 +68,9 @@ StyledRect {
         Repeater {
             id: items
 
-            model: SystemTray.items
+            model: ScriptModel {
+                values: [...SystemTray.items.values].filter(item => item.id !== "nm-applet" && item.id !== "blueman")
+            }
 
             TrayItem {}
         }

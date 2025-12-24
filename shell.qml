@@ -7,9 +7,12 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
+import qs.services
 import Quickshell
 
 ShellRoot {
+    // Ensure Wallpapers service is instantiated for swww-daemon
+    property var _wallpapers: Wallpapers
     Background {}
     Drawers {}
     AreaPicker {}

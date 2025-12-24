@@ -24,7 +24,7 @@ Loader {
             name: "background"
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Background
-            color: "black"
+            color: Config.background.swww.enabled ? "transparent" : "black"
 
             anchors.top: true
             anchors.bottom: true
@@ -33,6 +33,7 @@ Loader {
 
             Wallpaper {
                 id: wallpaper
+                visible: !Config.background.swww.enabled
             }
 
             Visualiser {
