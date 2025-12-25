@@ -62,6 +62,8 @@ Dependencies:
 -   [`bash`](https://www.gnu.org/software/bash)
 -   `qt6-base`
 -   `qt6-declarative`
+-   network-manager-applet
+-   blueman-applet
 
 Build dependencies:
 
