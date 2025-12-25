@@ -41,7 +41,6 @@ Variants {
         StyledWindow {
             id: win
 
-            readonly property bool hasFullscreen: Hypr.monitorFor(screen)?.activeWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen === 2) ?? false
             readonly property int dragMaskPadding: {
                 if (focusGrab.active || panels.popouts.isDetached)
                     return 0;
@@ -57,16 +56,11 @@ Variants {
                 return Math.max(...thresholds);
             }
 
-            onHasFullscreenChanged: {
-                visibilities.launcher = false;
-                visibilities.session = false;
-                visibilities.dashboard = false;
-            }
-
             screen: scope.modelData
             name: "drawers"
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+            WlrLayershell.layer: visibilities.osd || visibilities.launcher || visibilities.session ? WlrLayer.Overlay : WlrLayer.Top
 
             mask: Region {
                 x: bar.implicitWidth + win.dragMaskPadding
