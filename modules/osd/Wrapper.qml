@@ -13,7 +13,9 @@ Item {
     required property var visibilities
     property bool hovered
     readonly property Brightness.Monitor monitor: Brightness.getMonitorForScreen(root.screen)
-    readonly property bool shouldBeActive: visibilities.osd && Config.osd.enabled && !(visibilities.utilities && Config.utilities.enabled)
+    // In fullscreen mode, ignore utilities visibility check since mouse position may be stale
+    // (fullscreen apps capture input, so the shell doesn't receive mouse move events)
+    readonly property bool shouldBeActive: visibilities.osd && Config.osd.enabled && (Hypr.activeFullscreen || !(visibilities.utilities && Config.utilities.enabled))
 
     property real volume
     property bool muted

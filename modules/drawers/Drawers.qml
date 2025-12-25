@@ -60,7 +60,12 @@ Variants {
             name: "drawers"
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-            WlrLayershell.layer: visibilities.osd || visibilities.launcher || visibilities.session ? WlrLayer.Overlay : WlrLayer.Top
+            // Keep layer at Overlay when in fullscreen mode so popups can show above fullscreen windows.
+            // The shell content is hidden via opacity when no popups are visible in fullscreen mode.
+            WlrLayershell.layer: Hypr.activeFullscreen || visibilities.osd || visibilities.launcher || visibilities.session ? WlrLayer.Overlay : WlrLayer.Top
+
+            // Track if any popup is visible
+            readonly property bool anyPopupVisible: visibilities.osd || visibilities.launcher || visibilities.session || visibilities.dashboard || visibilities.utilities || visibilities.sidebar || visibilities.bar || panels.popouts.hasCurrent
 
             mask: Region {
                 x: bar.implicitWidth + win.dragMaskPadding
@@ -96,9 +101,14 @@ Variants {
             HyprlandFocusGrab {
                 id: focusGrab
 
+                // Focus grab is needed for keyboard focus (e.g., Escape to close popups)
                 active: (visibilities.launcher && Config.launcher.enabled) || (visibilities.session && Config.session.enabled) || (visibilities.sidebar && Config.sidebar.enabled) || (!Config.dashboard.showOnHover && visibilities.dashboard && Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && panels.popouts.current?.depth > 1)
                 windows: [win]
                 onCleared: {
+                    // Don't hide popups if we're in fullscreen mode - the fullscreen app will
+                    // reclaim focus but we want the popup to stay visible until explicitly closed
+                    if (Hypr.activeFullscreen)
+                        return;
                     visibilities.launcher = false;
                     visibilities.session = false;
                     visibilities.sidebar = false;
@@ -119,13 +129,23 @@ Variants {
             }
 
             Item {
+                id: decorations
                 anchors.fill: parent
-                opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
+                // Hide shell decorations in fullscreen mode when no popups are visible
+                opacity: (Hypr.activeFullscreen && !win.anyPopupVisible) ? 0 : (Colours.transparency.enabled ? Colours.transparency.base : 1)
+                visible: opacity > 0 || decorationsOpacityAnim.running
                 layer.enabled: true
                 layer.effect: MultiEffect {
                     shadowEnabled: true
                     blurMax: 15
                     shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
+                }
+
+                Behavior on opacity {
+                    id: decorationsOpacityAnim
+                    Anim {
+                        easing.bezierCurve: Appearance.anim.curves.emphasized
+                    }
                 }
 
                 Border {
@@ -151,6 +171,7 @@ Variants {
 
                 Component.onCompleted: Visibilities.load(scope.modelData, this)
             }
+
 
             Interactions {
                 screen: scope.modelData

@@ -1,6 +1,7 @@
 import qs.components.controls
 import qs.config
 import qs.modules.bar.popouts as BarPopouts
+import qs.services
 import Quickshell
 import QtQuick
 
@@ -56,6 +57,11 @@ CustomMouseArea {
     onPressed: event => dragStart = Qt.point(event.x, event.y)
     onContainsMouseChanged: {
         if (!containsMouse) {
+            // In fullscreen mode, don't hide popups based on mouse state since
+            // fullscreen apps capture input and mouse position may be unreliable
+            if (Hypr.activeFullscreen)
+                return;
+
             // Only hide if not activated by shortcut
             if (!osdShortcutActive) {
                 visibilities.osd = false;
@@ -212,8 +218,9 @@ CustomMouseArea {
         target: root.visibilities
 
         function onLauncherChanged() {
-            // If launcher is hidden, clear shortcut flags for dashboard and OSD
-            if (!root.visibilities.launcher) {
+            // If launcher is hidden and we're not in fullscreen mode, clear shortcut flags for dashboard and OSD
+            // In fullscreen mode, these flags should persist to allow popups to remain visible
+            if (!root.visibilities.launcher && !Hypr.activeFullscreen) {
                 root.dashboardShortcutActive = false;
                 root.osdShortcutActive = false;
                 root.utilitiesShortcutActive = false;

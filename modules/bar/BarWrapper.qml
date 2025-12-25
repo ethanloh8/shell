@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import qs.components
 import qs.config
+import qs.services
 import "popouts" as BarPopouts
 import Quickshell
 import QtQuick
@@ -19,6 +20,11 @@ Item {
     readonly property int exclusiveZone: !disabled && (Config.bar.persistent || visibilities.bar) ? contentWidth : Config.border.thickness
     readonly property bool shouldBeVisible: !disabled && (Config.bar.persistent || visibilities.bar || isHovered)
     property bool isHovered
+
+    // Track if any popup is visible for fullscreen hiding
+    readonly property bool anyPopupVisible: visibilities.osd || visibilities.launcher || visibilities.session || visibilities.dashboard || visibilities.utilities || visibilities.sidebar || visibilities.bar || popouts.hasCurrent
+    // Hide bar content in fullscreen mode when no popups are visible
+    readonly property bool hideInFullscreen: Hypr.activeFullscreen && !anyPopupVisible
 
     function closeTray(): void {
         content.item?.closeTray();
@@ -76,6 +82,16 @@ Item {
         anchors.right: parent.right
 
         active: root.shouldBeVisible || root.visible
+        // Hide bar content in fullscreen mode when no popups are visible
+        opacity: root.hideInFullscreen ? 0 : 1
+        visible: opacity > 0 || opacityAnim.running
+
+        Behavior on opacity {
+            id: opacityAnim
+            Anim {
+                easing.bezierCurve: Appearance.anim.curves.emphasized
+            }
+        }
 
         sourceComponent: Bar {
             width: root.contentWidth

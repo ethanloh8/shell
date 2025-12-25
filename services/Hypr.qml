@@ -20,6 +20,33 @@ Singleton {
     readonly property HyprlandWorkspace focusedWorkspace: Hyprland.focusedWorkspace
     readonly property HyprlandMonitor focusedMonitor: Hyprland.focusedMonitor
     readonly property int activeWsId: focusedWorkspace?.id ?? 1
+    // Use multiple methods to detect fullscreen for maximum reliability.
+    // Fullscreen detection is critical because it controls whether focus grab is disabled
+    // and whether various guards prevent popups from being hidden.
+    readonly property bool activeFullscreen: {
+        // Method 1: Check workspace's hasfullscreen property
+        const ws = Hyprland.focusedWorkspace;
+        if (ws?.lastIpcObject?.hasfullscreen)
+            return true;
+
+        // Method 2: Check active toplevel directly (only if it's on the focused workspace)
+        const activeTl = Hyprland.activeToplevel?.lastIpcObject;
+        if (activeTl?.workspace?.id === ws?.id && (activeTl?.fullscreen === 1 || activeTl?.fullscreen === 2))
+            return true;
+
+        // Method 3: Iterate through all toplevels to find any fullscreen window on the focused workspace
+        // This is the most reliable but also most expensive check
+        const wsId = ws?.id;
+        if (wsId !== undefined) {
+            for (const toplevel of Hyprland.toplevels.values) {
+                const tl = toplevel?.lastIpcObject;
+                if (tl?.workspace?.id === wsId && (tl?.fullscreen === 1 || tl?.fullscreen === 2))
+                    return true;
+            }
+        }
+
+        return false;
+    }
 
     readonly property HyprKeyboard keyboard: extras.devices.keyboards.find(kb => kb.main) ?? null
     readonly property bool capsLock: keyboard?.capsLock ?? false
@@ -90,6 +117,7 @@ Singleton {
                 root.configReloaded();
                 root.reloadDynamicConfs();
             } else if (["workspace", "moveworkspace", "activespecial", "focusedmon"].includes(n)) {
+                Hyprland.refreshToplevels();
                 Hyprland.refreshWorkspaces();
                 Hyprland.refreshMonitors();
             } else if (["openwindow", "closewindow", "movewindow"].includes(n)) {
@@ -101,6 +129,9 @@ Singleton {
                 Hyprland.refreshWorkspaces();
             } else if (n.includes("window") || n.includes("group") || ["pin", "fullscreen", "changefloatingmode", "minimize"].includes(n)) {
                 Hyprland.refreshToplevels();
+                // Also refresh workspaces on fullscreen changes so hasfullscreen property updates
+                if (n === "fullscreen")
+                    Hyprland.refreshWorkspaces();
             }
         }
     }
