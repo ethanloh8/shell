@@ -6,6 +6,7 @@ import "popouts" as BarPopouts
 import "components"
 import "components/workspaces"
 import Quickshell
+import Quickshell.Services.SystemTray
 import QtQuick
 import QtQuick.Layouts
 
@@ -58,7 +59,9 @@ ColumnLayout {
                 const index = Math.floor(((y - top - item.padding * 2 + item.spacing) / item.layout.implicitHeight) * item.items.count);
                 const trayItem = item.items.itemAt(index);
                 if (trayItem) {
-                    popouts.currentName = `traymenu${index}`;
+                    const allItems = [...SystemTray.items.values];
+                    const actualIndex = allItems.findIndex(i => i.id === trayItem.modelData.id);
+                    popouts.currentName = `traymenu${actualIndex}`;
                     popouts.currentCenter = Qt.binding(() => trayItem.mapToItem(root, 0, trayItem.implicitHeight / 2).y);
                     popouts.hasCurrent = true;
                 } else {
