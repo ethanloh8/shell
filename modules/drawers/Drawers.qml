@@ -18,6 +18,7 @@ Variants {
         id: scope
 
         required property ShellScreen modelData
+        readonly property bool hasFullscreen: Hypr.hasFullscreenOnMonitor(modelData)
         readonly property bool barDisabled: {
             const regexChecker = /^\^.*\$$/;
             for (const filter of Config.bar.excludedScreens) {
@@ -62,7 +63,7 @@ Variants {
             WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             // Keep layer at Overlay when in fullscreen mode so popups can show above fullscreen windows.
             // The shell content is hidden via opacity when no popups are visible in fullscreen mode.
-            WlrLayershell.layer: Hypr.activeFullscreen || visibilities.osd || visibilities.launcher || visibilities.session ? WlrLayer.Overlay : WlrLayer.Top
+            WlrLayershell.layer: scope.hasFullscreen || visibilities.osd || visibilities.launcher || visibilities.session ? WlrLayer.Overlay : WlrLayer.Top
 
             // Track if any popup is visible
             readonly property bool anyPopupVisible: visibilities.osd || visibilities.launcher || visibilities.session || visibilities.dashboard || visibilities.utilities || visibilities.sidebar || visibilities.bar || panels.popouts.hasCurrent
@@ -107,7 +108,7 @@ Variants {
                 onCleared: {
                     // Don't hide popups if we're in fullscreen mode - the fullscreen app will
                     // reclaim focus but we want the popup to stay visible until explicitly closed
-                    if (Hypr.activeFullscreen)
+                    if (scope.hasFullscreen)
                         return;
                     visibilities.launcher = false;
                     visibilities.session = false;
@@ -132,7 +133,7 @@ Variants {
                 id: decorations
                 anchors.fill: parent
                 // Hide shell decorations in fullscreen mode when no popups are visible
-                opacity: (Hypr.activeFullscreen && !win.anyPopupVisible) ? 0 : (Colours.transparency.enabled ? Colours.transparency.base : 1)
+                opacity: (scope.hasFullscreen && !win.anyPopupVisible) ? 0 : (Colours.transparency.enabled ? Colours.transparency.base : 1)
                 visible: opacity > 0 || decorationsOpacityAnim.running
                 layer.enabled: true
                 layer.effect: MultiEffect {

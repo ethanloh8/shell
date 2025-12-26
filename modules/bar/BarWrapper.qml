@@ -24,7 +24,7 @@ Item {
     // Track if any popup is visible for fullscreen hiding
     readonly property bool anyPopupVisible: visibilities.osd || visibilities.launcher || visibilities.session || visibilities.dashboard || visibilities.utilities || visibilities.sidebar || visibilities.bar || popouts.hasCurrent
     // Hide bar content in fullscreen mode when no popups are visible
-    readonly property bool hideInFullscreen: Hypr.activeFullscreen && !anyPopupVisible
+    readonly property bool hideInFullscreen: Hypr.hasFullscreenOnMonitor(screen) && !anyPopupVisible
 
     function closeTray(): void {
         content.item?.closeTray();

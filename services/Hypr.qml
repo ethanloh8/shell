@@ -72,6 +72,30 @@ Singleton {
         return Hyprland.monitorFor(screen);
     }
 
+    function hasFullscreenOnMonitor(screen: ShellScreen): bool {
+        const mon = Hyprland.monitorFor(screen);
+        if (!mon)
+            return false;
+
+        const ws = mon.activeWorkspace;
+        if (!ws)
+            return false;
+
+        // Check workspace's hasfullscreen property
+        if (ws.lastIpcObject?.hasfullscreen)
+            return true;
+
+        // Check all toplevels on this workspace
+        const wsId = ws.id;
+        for (const toplevel of Hyprland.toplevels.values) {
+            const tl = toplevel?.lastIpcObject;
+            if (tl?.workspace?.id === wsId && (tl?.fullscreen === 1 || tl?.fullscreen === 2))
+                return true;
+        }
+
+        return false;
+    }
+
     function reloadDynamicConfs(): void {
         extras.batchMessage(["keyword bindlni ,Caps_Lock,global,caelestia:refreshDevices", "keyword bindlni ,Num_Lock,global,caelestia:refreshDevices"]);
     }
